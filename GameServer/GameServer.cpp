@@ -4,36 +4,50 @@
 
 #include <thread>
 #include <atomic>
+#include <mutex>
 
-atomic<int32> sum = 0;
+vector<int32> v;
+//Mutual Exclusive (상호배타적)
+mutex m;
 
-void Add()
+//RAII (Resource Aquisition is initialization)
+template<typename T>
+class LockGuard
 {
-	for (int32 i = 0; i < 100'0000; i++)
+public:
+	LockGuard(T& m)
 	{
-		sum.fetch_add(1);
+		_mutex = &m;
+		_mutex->lock();
 	}
-}
-
-void Sub()
-{
-	for (int32 i = 0; i < 100'0000; i++)
+	~LockGuard()
 	{
-		sum.fetch_add(-1);
+		_mutex->unlock();
+	}
+
+private:
+	T* _mutex;
+};
+
+void Push()
+{
+	for (int32 i = 0; i < 10'000; i++)
+	{
+		//m.lock();
+		lock_guard<std::mutex> lockGuard(m);
+		v.push_back(i);
+
+		//m.unlock();
 	}
 }
 int main()
 {
-	Add();
-	Sub();
-
-	cout << sum << endl;
-
-	std::thread t1(Add);
-	std::thread t2(Sub);
+	std::thread t1(Push);
+	std::thread t2(Push);
 
 	t1.join();
 	t2.join();
-	cout << sum << endl;
+
+	cout << v.size() << endl;
 
 }
