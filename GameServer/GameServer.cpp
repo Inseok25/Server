@@ -6,33 +6,58 @@
 #include <atomic>
 #include <mutex>
 
-#include "AccountManager.h"
-#include "UserManager.h"
-
-void Func1()
+class SpinLock
 {
-	for (int32 i = 0; i < 100; i++)
+public:
+	void lock()
 	{
-		UserManager::Instance()->ProcessSave();
+		// CAS (Compare-And-Swap)
+		bool expected = false;
+		bool desired = true;
+		  
+		while (_locked.compare_exchange_strong(expected, desired) == false)
+		{
+			expected = false;
+		}
+	}
+
+	void unlock()
+	{
+		_locked.store(false);
+	}
+
+private:
+	atomic<bool> _locked = false;
+};
+
+int32 sum = 0;
+mutex m;
+
+void Add()
+{
+	for (int32 i = 0; i < 10'0000; i++)
+	{
+		lock_guard<mutex> gurad(m);
+		sum++;
 	}
 }
 
-void Func2()
+void Sub()
 {
-	for (int32 i = 0; i < 100; i++)
+	for (int32 i = 0; i < 10'0000; i++)
 	{
-		AccountManager::Instance()->ProcessLogin();
+		lock_guard<mutex> gurad(m);
+		sum--;
 	}
-
 }
 int main()
 {
 
-	std::thread t1(Func1);
-	std::thread t2(Func2);
+	std::thread t1(Add);
+	std::thread t2(Sub);
 
 	t1.join();
 	t2.join();
 
-	cout << "Jobs Done" << endl;
+	cout << sum << endl;
 }
