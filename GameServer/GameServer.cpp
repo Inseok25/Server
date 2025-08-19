@@ -6,48 +6,33 @@
 #include <atomic>
 #include <mutex>
 
-vector<int32> v;
-//Mutual Exclusive (상호배타적)
-mutex m;
+#include "AccountManager.h"
+#include "UserManager.h"
 
-//RAII (Resource Aquisition is initialization)
-template<typename T>
-class LockGuard
+void Func1()
 {
-public:
-	LockGuard(T& m)
+	for (int32 i = 0; i < 100; i++)
 	{
-		_mutex = &m;
-		_mutex->lock();
+		UserManager::Instance()->ProcessSave();
 	}
-	~LockGuard()
-	{
-		_mutex->unlock();
-	}
+}
 
-private:
-	T* _mutex;
-};
-
-void Push()
+void Func2()
 {
-	for (int32 i = 0; i < 10'000; i++)
+	for (int32 i = 0; i < 100; i++)
 	{
-		//m.lock();
-		lock_guard<std::mutex> lockGuard(m);
-		v.push_back(i);
-
-		//m.unlock();
+		AccountManager::Instance()->ProcessLogin();
 	}
+
 }
 int main()
 {
-	std::thread t1(Push);
-	std::thread t2(Push);
+
+	std::thread t1(Func1);
+	std::thread t2(Func2);
 
 	t1.join();
 	t2.join();
 
-	cout << v.size() << endl;
-
+	cout << "Jobs Done" << endl;
 }
