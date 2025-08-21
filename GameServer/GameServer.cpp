@@ -5,61 +5,49 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
+#include <Windows.h>
 
-class SpinLock
+mutex m;
+queue<int32> q;
+HANDLE handle;
+
+void Producer()
 {
-public:
-	void lock()
+	while (true)
 	{
-		// CAS (Compare-And-Swap)
-		bool expected = false;
-		bool desired = true;
-		  
-		while (_locked.compare_exchange_strong(expected, desired) == false)
 		{
-			expected = false;
+			unique_lock<mutex> lock(m);
+			q.push(100);
+		}
 
-			this_thread::sleep_for(std::chrono::milliseconds(0));
+		::SetEvent(handle);
+		this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
+}
+
+void Comsumer()
+{
+	while (true)
+	{
+		::WaitForSingleObject(handle, INFINITE);
+		unique_lock<mutex> lock(m);
+		if (q.empty() == false)
+		{
+			int32 data = q.front();
+			q.pop();
+			cout << data << endl;
 		}
 	}
-
-	void unlock()
-	{
-		_locked.store(false);
-	}
-
-private:
-	atomic<bool> _locked = false;
-};
-
-int32 sum = 0;
-mutex m;
-
-void Add()
-{
-	for (int32 i = 0; i < 10'0000; i++)
-	{
-		lock_guard<mutex> gurad(m);
-		sum++;
-	}
 }
 
-void Sub()
-{
-	for (int32 i = 0; i < 10'0000; i++)
-	{
-		lock_guard<mutex> gurad(m);
-		sum--;
-	}
-}
 int main()
 {
-
-	std::thread t1(Add);
-	std::thread t2(Sub);
+	HANDLE handle = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+	std::thread t1(Producer);
+	std::thread t2(Comsumer);
 
 	t1.join();
 	t2.join();
 
-	cout << sum << endl;
+	::CloseHandle(handle);
 }
