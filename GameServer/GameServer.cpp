@@ -11,6 +11,8 @@ mutex m;
 queue<int32> q;
 HANDLE handle;
 
+condition_variable cv;
+
 void Producer()
 {
 	while (true)
@@ -20,8 +22,9 @@ void Producer()
 			q.push(100);
 		}
 
-		::SetEvent(handle);
-		this_thread::sleep_for(std::chrono::milliseconds(100));
+		cv.notify_one();
+
+		//this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 }
 
@@ -29,25 +32,23 @@ void Comsumer()
 {
 	while (true)
 	{
-		::WaitForSingleObject(handle, INFINITE);
 		unique_lock<mutex> lock(m);
-		if (q.empty() == false)
+		cv.wait(lock, []() {return q.empty() == false; });
+		//if (q.empty() == false)
 		{
 			int32 data = q.front();
 			q.pop();
-			cout << data << endl;
+			cout << q.size() << endl;
 		}
 	}
 }
 
 int main()
 {
-	HANDLE handle = ::CreateEvent(NULL, FALSE, FALSE, NULL);
 	std::thread t1(Producer);
 	std::thread t2(Comsumer);
 
 	t1.join();
 	t2.join();
 
-	::CloseHandle(handle);
 }
