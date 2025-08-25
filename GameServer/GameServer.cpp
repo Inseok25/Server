@@ -5,77 +5,47 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
+#include <Windows.h>
 
-#include <future>
-
-int64 Calculate()
-{
-	int64 sum = 0;
-
-	for (int32 i = 0; i < 100'000; i++)
-	{
-		sum += i;
-	}
-
-	return sum;
-}
-
-void PromiseWorker(std::promise<string>&& promise)
-{
-	promise.set_value("Secret Message");
-}
-
-void TaskWorker(std::packaged_task<int64(void)>&& task)
-{
-	task();
-}
+int32 buffer[10000][10000];
 
 int main()
 {
-	//동기(synchronous) 실행
-	//int64 sum = Calculate();
-	//cout << sum << endl;
+	memset(buffer, 0, sizeof(buffer));
+
 	{
-		std::future<int64> future = std::async(std::launch::async, Calculate);
+		uint64 start = GetTickCount64();
 
-		//future.wait_for(std::chrono::microseconds(1));
-		int64 sum = future.get();
-	
+		int64 sum = 0;
 
-		class Knight
+		for (int32 i = 0; i < 10000; i++)
 		{
-		public:
-			int64 GetHp() {return 100;	};
-		};
+			for (int32 j = 0; j < 10000; j++)
+			{
+				sum += buffer[i][j];
+			}
+		}
 
-		Knight knight;
+		uint64 end = GetTickCount64();
 
-		std::future<int64> future2 = std::async(std::launch::async, &Knight::GetHp, knight);
-
-
+		cout << "Elapsed Tick " << (end - start) << endl;
 	}
 
 	{
-		std::promise<string> promise;
-		std::future<string> future = promise.get_future();
+		uint64 start = GetTickCount64();
 
-		thread t(PromiseWorker, std::move(promise));
+		int64 sum = 0;
 
-		string message = future.get();
-		cout << message << endl;
+		for (int32 i = 0; i < 10000; i++)
+		{
+			for (int32 j = 0; j < 10000; j++)
+			{
+				sum += buffer[i][j];
+			}
+		}
 
-		t.join();
-	}
+		uint64 end = GetTickCount64();
 
-	{
-		std::packaged_task<int64(void)> task(Calculate);
-		std::future<int64> future = task.get_future();
-
-		std::thread t(TaskWorker, std::move(task));
-
-		int64 sum = future.get();
-		cout << sum << endl;
-
-		t.join();
+		cout << "Elapsed Tick " << (end - start) << endl;
 	}
 }
