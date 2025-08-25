@@ -5,50 +5,77 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
-#include <Windows.h>
 
-mutex m;
-queue<int32> q;
-HANDLE handle;
+#include <future>
 
-condition_variable cv;
-
-void Producer()
+int64 Calculate()
 {
-	while (true)
+	int64 sum = 0;
+
+	for (int32 i = 0; i < 100'000; i++)
 	{
-		{
-			unique_lock<mutex> lock(m);
-			q.push(100);
-		}
-
-		cv.notify_one();
-
-		//this_thread::sleep_for(std::chrono::milliseconds(100));
+		sum += i;
 	}
+
+	return sum;
 }
 
-void Comsumer()
+void PromiseWorker(std::promise<string>&& promise)
 {
-	while (true)
-	{
-		unique_lock<mutex> lock(m);
-		cv.wait(lock, []() {return q.empty() == false; });
-		//if (q.empty() == false)
-		{
-			int32 data = q.front();
-			q.pop();
-			cout << q.size() << endl;
-		}
-	}
+	promise.set_value("Secret Message");
+}
+
+void TaskWorker(std::packaged_task<int64(void)>&& task)
+{
+	task();
 }
 
 int main()
 {
-	std::thread t1(Producer);
-	std::thread t2(Comsumer);
+	//동기(synchronous) 실행
+	//int64 sum = Calculate();
+	//cout << sum << endl;
+	{
+		std::future<int64> future = std::async(std::launch::async, Calculate);
 
-	t1.join();
-	t2.join();
+		//future.wait_for(std::chrono::microseconds(1));
+		int64 sum = future.get();
+	
 
+		class Knight
+		{
+		public:
+			int64 GetHp() {return 100;	};
+		};
+
+		Knight knight;
+
+		std::future<int64> future2 = std::async(std::launch::async, &Knight::GetHp, knight);
+
+
+	}
+
+	{
+		std::promise<string> promise;
+		std::future<string> future = promise.get_future();
+
+		thread t(PromiseWorker, std::move(promise));
+
+		string message = future.get();
+		cout << message << endl;
+
+		t.join();
+	}
+
+	{
+		std::packaged_task<int64(void)> task(Calculate);
+		std::future<int64> future = task.get_future();
+
+		std::thread t(TaskWorker, std::move(task));
+
+		int64 sum = future.get();
+		cout << sum << endl;
+
+		t.join();
+	}
 }
