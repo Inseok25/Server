@@ -8,46 +8,42 @@
 #include <Windows.h>
 #include <future>
 
-int32 x = 0;
-int32 y = 0;
-int32 r1 = 0;
-int32 r2 = 0;
 
-volatile bool ready;
-void Thread_1()
-{
-	while (!ready);
-	y = 1;
-	r1 = x;
-}
+atomic<bool> flag;
 
-void Thread_2()
-{
-	while (!ready);
-	x = 1;
-	r2 = y;
-}
 int main()
 {
-	int32 count = 0;
+	flag = false;
 
-	while (true)
+	flag.store(true, memory_order_seq_cst);
+
+	bool val = flag.load(memory_order_seq_cst);
+
 	{
-		ready = false;
-
-		x = y = r1 = r2 = 0;
-
-		thread t1(Thread_1);
-		thread t2(Thread_2);
-
-		ready = true;
-
-		t1.join();
-		t2.join();
-
-		if (r1 == 0 && r2 == 0)
-			break;
+		bool prev = flag.exchange(true);
 	}
 
-	cout << count << " 번 만에 빠져나옴~" << endl;
+	{
+		bool expected = false;
+		bool desired = true;
+		flag.compare_exchange_strong(expected, desired);
+
+		if (flag == expected)
+		{
+			flag = desired;
+			return true;
+		}
+		else
+		{
+			expected = flag;
+			return false;
+		}
+		while (true)
+		{
+			bool expected = false;
+			bool desired = true;
+			flag.compare_exchange_weak(expected, desired);
+		}
+	}
+
 }
