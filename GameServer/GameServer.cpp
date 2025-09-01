@@ -1,49 +1,34 @@
 ﻿#include "pch.h"
 #include <iostream>
 #include "CorePch.h"
-
 #include <thread>
 #include <atomic>
 #include <mutex>
 #include <Windows.h>
 #include <future>
 
+thread_local int32 LThreadId = 0;
 
-atomic<bool> flag;
+void ThreadMain(int32 threadId)
+{
+	LThreadId = threadId;
 
+	while (true)
+	{
+		cout << "I'm Thread " << LThreadId << endl;
+		this_thread::sleep_for(chrono::seconds(1));
+	}
+}
 int main()
 {
-	flag = false;
+	vector<thread> threads;
 
-	flag.store(true, memory_order_seq_cst);
-
-	bool val = flag.load(memory_order_seq_cst);
-
+	for (int32 i = 0; i < 10; i++)
 	{
-		bool prev = flag.exchange(true);
+		int32 threadId = i + 1;
+		threads.push_back(thread(ThreadMain, threadId));
+
+		for (thread& t : threads)
+			t.join();
 	}
-
-	{
-		bool expected = false;
-		bool desired = true;
-		flag.compare_exchange_strong(expected, desired);
-
-		if (flag == expected)
-		{
-			flag = desired;
-			return true;
-		}
-		else
-		{
-			expected = flag;
-			return false;
-		}
-		while (true)
-		{
-			bool expected = false;
-			bool desired = true;
-			flag.compare_exchange_weak(expected, desired);
-		}
-	}
-
 }
