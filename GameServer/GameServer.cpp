@@ -5,41 +5,25 @@
 #include <mutex>
 #include <windows.h>
 #include <future>
-#include "ConcurrentQueue.h"
-#include "ConcurrentStack.h"
+#include "ThreadManager.h"
 
-LockFreeQueue<int32> q;
-LockFreeStack<int32> s;
+CoreGlobal Core;
 
-void Push()
+void ThreadMain()
 {
 	while (true)
 	{
-		int32 value = rand() % 100;
-		s.Push(value);
-
+		cout << "Hello ! I am thread... " << LThreadId << endl;
 		this_thread::sleep_for(chrono::microseconds(1));
 	}
 }
 
-void Pop()
-{
-	while (true)
-	{
-		auto data = s.TryPop();
-		if (data != nullptr)
-			cout << (*data) << endl;
-	}
-}
-
-
 int main()
 {
-	thread t1(Push);
-	thread t2(Pop);
-	thread t3(Pop);
+	for (int32 i = 0; i < 5; i++)
+	{
+		GThreadManager->Launch(ThreadMain);
+	}
 
-	t1.join();
-	t2.join();
-	t3.join();
+	GThreadManager->Join();
 }
