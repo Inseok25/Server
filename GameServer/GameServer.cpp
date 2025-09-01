@@ -27,8 +27,8 @@ int main()
 	{
 		int32 threadId = i + 1;
 		threads.push_back(thread(ThreadMain, threadId));
-
-		for (thread& t : threads)
-			t.join();
 	}
+
+	for (thread& t : threads)
+		t.join();
 }
