@@ -9,16 +9,16 @@
 #include "ConcurrentStack.h"
 
 LockQueue<int32> q;
-LockStack<int32> s;
+LockFreeStack<int32> s;
 
 void Push()
 {
 	while (true)
 	{
 		int32 value = rand() % 100;
-		q.Push(value);
+		s.Push(value);
 
-		this_thread::sleep_for(chrono::microseconds(10));
+		this_thread::sleep_for(chrono::microseconds(1));
 	}
 }
 
@@ -26,9 +26,9 @@ void Pop()
 {
 	while (true)
 	{
-		int32 data = 0;
-		if (q.TryPop(OUT data))
-			cout << data << endl;
+		auto data = s.TryPop();
+		if (data != nullptr)
+			cout << (*data) << endl;
 	}
 }
 
