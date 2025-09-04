@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include "Types.h"
 #include "CoreMacro.h"
 #include "CoreTLS.h"
