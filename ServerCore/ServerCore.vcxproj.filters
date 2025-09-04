@@ -51,6 +51,9 @@
     <ClInclude Include="Allocator.h">
       <Filter>Network</Filter>
     </ClInclude>
+    <ClInclude Include="Container.h">
+      <Filter>Network</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CorePch.cpp">
